@@ -1,0 +1,730 @@
+image: ruby:latest
+
+stages:
+  - create_secrets 
+  - deploy_calendars
+  - deploy_resources
+  - deploy_connection_profiles
+  - deploy_jobs
+ 
+Deploy calanders on sandbox:
+  stage: deploy_calendars
+  only:
+    - sandbox
+  environment:
+    name: sandbox
+  script:
+      - |
+        path="calendars"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $sandbox_apitoken" -X POST -F "definitionsFile=@$f" "$sandbox_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+       
+Deploy resources on sandbox:
+  stage: deploy_resources
+  only:
+    - sandbox
+  environment:
+    name: sandbox
+  script:
+    - |
+        path="resources"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+           
+           # store resoruce and resource name in a variable
+             resource=$(cat $f)
+             regex="name\": \"([^\"]+)"
+             if [[ $resource =~ $regex ]]; then
+                resource_name=${BASH_REMATCH[1]}
+
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                search_criteria="name=$resource_name"
+                echo $search_criteria
+                # Delete existing resource if exists
+                HTTP_CODE=$(curl -H "x-api-key: $sandbox_apitoken" -X DELETE "$sandbox_endpoint/run/resource/IN01/$resource_name" -v -o output.tmp -w '%{http_code}')
+                cat output.tmp
+                # Deploy resource
+                HTTP_CODE=$(curl -H "x-api-key: $sandbox_apitoken" -X POST -H "Content-Type: application/json" -d "$resource" "$sandbox_endpoint/run/resource/IN01" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+                
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy Connection profiles on sandbox:
+  stage: deploy_connection_profiles
+  only:
+    - sandbox
+  environment:
+    name: sandbox
+  script:
+      - |
+        path="connection-profiles"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $sandbox_apitoken" -X POST -F "definitionsFile=@$f" "$sandbox_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy jobs on sandbox:
+  stage: deploy_jobs
+  only:
+    - sandbox
+  environment:
+    name: sandbox
+  script:
+      - |
+        path="jobs"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $sandbox_apitoken" -X POST -F "definitionsFile=@$f" "$sandbox_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+ 
+Deploy calanders on pre-prod:
+  stage: deploy_calendars
+  only:
+    - pre-prod
+  environment:
+    name: pre-prod
+  script:
+      - |
+        path="calendars"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $preprod_apitoken" -X POST -F "definitionsFile=@$f" "$preprod_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+       
+Deploy resources on pre-prod:
+  stage: deploy_resources
+  only:
+    - pre-prod
+  environment:
+    name: pre-prod
+  script:
+    - |
+        path="resources"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+           
+           # store resoruce and resource name in a variable
+             resource=$(cat $f)
+             regex="name\": \"([^\"]+)"
+             if [[ $resource =~ $regex ]]; then
+                resource_name=${BASH_REMATCH[1]}
+
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                search_criteria="name=$resource_name"
+                echo $search_criteria
+                # Delete existing resource if exists
+                HTTP_CODE=$(curl -H "x-api-key: $preprod_apitoken" -X DELETE "$preprod_endpoint/run/resource/IN01/$resource_name" -v -o output.tmp -w '%{http_code}')
+                cat output.tmp
+                # Deploy resource
+                HTTP_CODE=$(curl -H "x-api-key: $preprod_apitoken" -X POST -H "Content-Type: application/json" -d "$resource" "$preprod_endpoint/run/resource/IN01" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+                
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy Connection profiles on pre-prod:
+  stage: deploy_connection_profiles
+  only:
+    - pre-prod
+  environment:
+    name: pre-prod
+  script:
+      - |
+        path="connection-profiles"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $preprod_apitoken" -X POST -F "definitionsFile=@$f" "$preprod_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy jobs on pre-prod:
+  stage: deploy_jobs
+  only:
+    - pre-prod
+  environment:
+    name: pre-prod
+  script:
+      - |
+        path="jobs"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $preprod_apitoken" -X POST -F "definitionsFile=@$f" "$preprod_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+ 
+Deploy calanders on apj-prod:
+  stage: deploy_calendars
+  only:
+    - production
+  environment:
+    name: apj
+  script:
+      - |
+        path="calendars"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $apj_apitoken" -X POST -F "definitionsFile=@$f" "$apj_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+       
+Deploy resources on apj-prod:
+  stage: deploy_resources
+  only:
+    - production
+  environment:
+    name: apj
+  script:
+    - |
+        path="resources"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+           
+           # store resoruce and resource name in a variable
+             resource=$(cat $f)
+             regex="name\": \"([^\"]+)"
+             if [[ $resource =~ $regex ]]; then
+                resource_name=${BASH_REMATCH[1]}
+
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                search_criteria="name=$resource_name"
+                echo $search_criteria
+                # Delete existing resource if exists
+                HTTP_CODE=$(curl -H "x-api-key: $apj_apitoken" -X DELETE "$apj_endpoint/run/resource/IN01/$resource_name" -v -o output.tmp -w '%{http_code}')
+                cat output.tmp
+                # Deploy resource
+                HTTP_CODE=$(curl -H "x-api-key: $apj_apitoken" -X POST -H "Content-Type: application/json" -d "$resource" "$apj_endpoint/run/resource/IN01" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+                
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy connection profiles on apj-prod:
+  stage: deploy_connection_profiles
+  only:
+    - production
+  environment:
+    name: apj
+  script:
+      - |
+        path="connection-profiles"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $apj_apitoken" -X POST -F "definitionsFile=@$f" "$apj_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy jobs on apj-prod:
+  stage: deploy_jobs
+  only:
+    - production
+  environment:
+    name: apj
+  script:
+      - |
+        path="jobs"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $apj_apitoken" -X POST -F "definitionsFile=@$f" "$apj_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy calanders on emea-prod:
+  stage: deploy_calendars
+  only:
+    - production
+  environment:
+    name: emea
+
+  script:
+      - |
+        path="calendars"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $emea_apitoken" -X POST -F "definitionsFile=@$f" "$emea_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+       
+Deploy resources on emea-prod:
+  stage: deploy_resources
+  only:
+    - production
+  environment:
+    name: emea
+
+  script:
+    - |
+        path="resources"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+           
+           # store resoruce and resource name in a variable
+             resource=$(cat $f)
+             regex="name\": \"([^\"]+)"
+             if [[ $resource =~ $regex ]]; then
+                resource_name=${BASH_REMATCH[1]}
+
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                search_criteria="name=$resource_name"
+                echo $search_criteria
+                # Delete existing resource if exists
+                HTTP_CODE=$(curl -H "x-api-key: $emea_apitoken" -X DELETE "$emea_endpoint/run/resource/IN01/$resource_name" -v -o output.tmp -w '%{http_code}')
+                cat output.tmp
+                # Deploy resource
+                HTTP_CODE=$(curl -H "x-api-key: $emea_apitoken" -X POST -H "Content-Type: application/json" -d "$resource" "$emea_endpoint/run/resource/IN01" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+                
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy connection profiles on emea-prod:
+  stage: deploy_connection_profiles
+  only:
+    - production
+  environment:
+    name: emea
+
+  script:
+      - |
+        path="connection-profiles"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $emea_apitoken" -X POST -F "definitionsFile=@$f" "$emea_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy jobs on emea-prod:
+  stage: deploy_jobs
+  only:
+    - production
+  environment:
+    name: emea
+  script:
+      - |
+        path="jobs"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $emea_apitoken" -X POST -F "definitionsFile=@$f" "$emea_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+Deploy calanders on americas-prod:
+  stage: deploy_calendars
+  only:
+    - production
+  environment:
+    name: americas
+  script:
+      - |
+        path="calendars"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+
+             # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+             HTTP_CODE=$(curl -H "x-api-key: $americas_apitoken" -X POST -F "definitionsFile=@$f" "$americas_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+
+             # Print the output for pipeline monitoring
+             cat output.tmp
+
+             # Exit when API call failed
+             if [[ ${HTTP_CODE} -ne 200 ]] ; then       
+                echo "Deployment for $f failed with http code $HTTP_CODE"         
+                exit 1
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+       
+Deploy resources on americas-prod:
+  stage: deploy_resources
+  only:
+    - production
+  environment:
+    name: americas
+  script:
+    - |
+        path="resources"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+           do
+             printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+           
+           # store resoruce and resource name in a variable
+             resource=$(cat $f)
+             regex="name\": \"([^\"]+)"
+             if [[ $resource =~ $regex ]]; then
+                resource_name=${BASH_REMATCH[1]}
+
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                search_criteria="name=$resource_name"
+                echo $search_criteria
+                # Delete existing resource if exists
+                HTTP_CODE=$(curl -H "x-api-key: $americas_apitoken" -X DELETE "$americas_endpoint/run/resource/IN01/$resource_name" -v -o output.tmp -w '%{http_code}')
+                cat output.tmp
+                # Deploy resource
+                HTTP_CODE=$(curl -H "x-api-key: $americas_apitoken" -X POST -H "Content-Type: application/json" -d "$resource" "$americas_endpoint/run/resource/IN01" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+                
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+             fi
+           done
+        else
+           echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy connection profiles on americas-prod:
+  stage: deploy_connection_profiles
+  only:
+    - production
+  environment:
+    name: americas
+  script:
+      - |
+        path="connection-profiles"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $americas_apitoken" -X POST -F "definitionsFile=@$f" "$americas_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
+
+Deploy jobs on americas-prod:
+  stage: deploy_jobs
+  only:
+    - production
+  environment:
+    name: americas
+  script:
+      - |
+        path="jobs"
+        files=$(shopt -s nullglob dotglob; echo $path/*.json)
+        if (( ${#files} ))
+        then
+          # Loop over all files in directory
+           for f in $path/*.json
+              do
+                printf "\n================================================================================================================\n Deploying $f\n================================================================================================================\n"
+   
+                # Do silent curl to call the AAPI. Fetch the HTTP_CODE in a variable and write the output to a tmp file
+                HTTP_CODE=$(curl -H "x-api-key: $americas_apitoken" -X POST -F "definitionsFile=@$f" "$americas_endpoint/deploy" --silent -o output.tmp -w '%{http_code}')
+   
+                # Print the output for pipeline monitoring
+                cat output.tmp
+   
+                # Exit when API call failed
+                if [[ ${HTTP_CODE} -ne 200 ]] ; then                
+                   echo "Deployment for $f failed with http code $HTTP_CODE"
+                   exit 1
+                fi
+              done
+           else
+              echo "Nothing to do. No files to deploy in $path"
+        fi
